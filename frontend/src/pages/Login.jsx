@@ -51,13 +51,31 @@ export default function Login() {
     }
   };
 
+  const parseJwt = (token) => {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      return JSON.parse(jsonPayload);
+    } catch (e) {
+      return null;
+    }
+  };
+
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
       const res = await api.post("/auth/verify-otp", { mobileNo, otp });
+      const decoded = parseJwt(res.data.token);
       localStorage.setItem("token", res.data.token);
-      localStorage.setItem("role", res.data.role);
+      localStorage.setItem("role", decoded?.role || res.data.role);
+      localStorage.setItem("userId", decoded?.userId || decoded?.id || decoded?.claimantId || "");
       navigate("/applicant-dashboard");
     } catch (err) {
       alert("Invalid OTP: " + (err.response?.data?.error || err.message));
@@ -71,8 +89,10 @@ export default function Login() {
     setLoading(true);
     try {
       const res = await api.post("/auth/login", { email, password });
+      const decoded = parseJwt(res.data.token);
       localStorage.setItem("token", res.data.token);
-      localStorage.setItem("role", res.data.role);
+      localStorage.setItem("role", decoded?.role || res.data.role);
+      localStorage.setItem("userId", decoded?.userId || decoded?.id || decoded?.claimantId || "");
 
       if (res.data.role === "Administrator") navigate("/dashboard");
       else navigate("/queue");

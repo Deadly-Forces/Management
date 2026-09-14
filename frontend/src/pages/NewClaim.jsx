@@ -43,12 +43,18 @@ export default function NewClaim() {
   }, [step, aiCheckStatus]);
 
   const handleSubmit = async () => {
+    const rawDescription = (formData.description || (formData.policyNumber ? `Claim for policy ${formData.policyNumber}` : '')).trim();
+    if (!rawDescription) {
+      alert('Validation Error: Claim description cannot be blank.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const data = new FormData();
       data.append('type', 'LIFE_DEATH'); // Defaulting to life insurance death claim
-      data.append('description', `Claim for policy ${formData.policyNumber}`);
-      data.append('dateOfLoss', formData.dateOfDeath);
+      data.append('description', rawDescription);
+      data.append('dateOfLoss', formData.dateOfDeath || new Date().toISOString().split('T')[0]);
       data.append('location', 'Not Specified');
       data.append('policyNumber', formData.policyNumber);
       data.append('insuranceCompany', formData.insuranceCompany);
@@ -58,13 +64,12 @@ export default function NewClaim() {
         data.append('documents', file);
       });
 
-      // Assuming backend accepts these or ignores extra fields
       await api.post('/demo/claims/submit', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       navigate('/applicant-dashboard');
     } catch (e) {
-      alert('Error submitting claim: ' + e.message);
+      alert('Error submitting claim: ' + (e.response?.data?.error || e.message));
       setSubmitting(false);
     }
   };

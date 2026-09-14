@@ -3,7 +3,12 @@ const Tenant = require('../models/Tenant');
 const jwt = require('jsonwebtoken');
 
 const generateToken = (id, role, tenantId) => {
-  return jwt.sign({ id, role, tenantId }, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' });
+  const expiresIn = (role === 'Claimant') ? '24h' : '8h';
+  return jwt.sign(
+    { id, userId: id, claimantId: id, role, tenantId },
+    process.env.JWT_SECRET || 'secret',
+    { expiresIn }
+  );
 };
 
 exports.requestOtp = async (req, res) => {

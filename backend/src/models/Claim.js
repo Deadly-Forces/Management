@@ -24,6 +24,11 @@ const claimSchema = new mongoose.Schema({
   },
   description: { type: String, required: true },
   
+  // Extracted Entities & ML Decision for UI Card Display
+  policyNumber: { type: String, default: null },
+  extractedAmount: { type: Number, default: null },
+  aiDecision: { type: String, default: null },
+
   // AI Global Claim Analysis
   aiAnalysis: {
     summary: String,

@@ -1,1 +1,28 @@
-# Track all files
+# Environment files
+*.env
+.env
+backend/.env
+.env.local
+.env.*.local
+
+# ML models and virtual environments
+ml/models/*.pkl
+ml/venv/
+*.pyc
+__pycache__/
+
+# Root-level sensitive test images and document uploads
+*.webp
+*.png
+uploads/
+backend/uploads/
+*.traineddata
+
+# Build artifacts and dependencies
+dist/
+frontend/dist/
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+.DS_Store
+Thumbs.db
