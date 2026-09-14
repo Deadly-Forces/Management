@@ -24,7 +24,7 @@ graph TD
     WS[WebSocket Server / Socket.io]
     
     %% Backend Topology
-    subgraph API Orchestration Layer (Node.js/Express)
+    subgraph Backend [API Orchestration Layer Node.js Express]
         Gateway[API Router]
         Auth[JWT Middleware]
         FSM[Claim State Machine]
@@ -36,7 +36,7 @@ graph TD
     DB[(MongoDB NoSQL Store)]
     
     %% ML Topology
-    subgraph ML Inference Microservice (FastAPI)
+    subgraph ML [ML Inference Microservice FastAPI]
         Pydantic[Pydantic Schema Validation]
         Model[RandomForestClassifier]
         SHAP[SHAP Explainer Matrix]
