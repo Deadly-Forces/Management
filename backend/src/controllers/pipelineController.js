@@ -20,6 +20,13 @@ exports.triggerPipeline = async (req, res) => {
   try {
     const { claimId } = req.params;
     const claim = await processClaimDocuments(claimId, req.tenantId);
+    
+    // Emit WebSockets event
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("claim_updated", claim);
+    }
+    
     res.status(200).json({ success: true, data: claim });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

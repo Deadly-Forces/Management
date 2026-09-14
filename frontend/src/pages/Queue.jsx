@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Sidebar from '../components/Sidebar';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import { io } from 'socket.io-client';
 
 export default function Queue() {
   const role = localStorage.getItem('role') || 'Human_Verifier';
@@ -10,7 +11,27 @@ export default function Queue() {
   const [claims, setClaims] = useState([]);
 
   useEffect(() => {
+    // Initial fetch
     api.get('/demo/claims').then(res => setClaims(res.data)).catch(console.error);
+
+    // Socket.io connection for real-time updates
+    const socket = io('http://localhost:5000');
+    
+    socket.on('claim_updated', (updatedClaim) => {
+      setClaims(prev => {
+        const exists = prev.find(c => c.claimId === updatedClaim.claimId);
+        if (exists) {
+          return prev.map(c => c.claimId === updatedClaim.claimId ? updatedClaim : c);
+        } else {
+          return [updatedClaim, ...prev];
+        }
+      });
+      
+      // Optional: Add a simple toast or sound notification here
+      console.log('Real-time claim update received:', updatedClaim.claimId);
+    });
+
+    return () => socket.disconnect();
   }, []);
 
   return (

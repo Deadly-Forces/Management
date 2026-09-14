@@ -35,6 +35,9 @@ const claimSchema = new mongoose.Schema({
     consistencyScore: Number,
     detectedIssues: [String],
     recommendedAction: String,
+    explanations: [String], // SHAP explanations
+    tamperingFlags: [String], // EXIF/Vision flags
+    fraudRingMatches: [{ claimId: String, reason: String }], // Fraud ring graph matches
     processedAt: Date
   },
 

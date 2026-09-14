@@ -154,6 +154,48 @@ export default function Cockpit() {
               <p className="text-sm text-slate-700 font-medium leading-relaxed">{claim.aiAnalysis.summary}</p>
             </div>
             
+            {claim.aiAnalysis.explanations && claim.aiAnalysis.explanations.length > 0 && (
+              <div className="mb-4">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Key Risk Drivers (SHAP)</span>
+                <ul className="space-y-1">
+                  {claim.aiAnalysis.explanations.map((exp, idx) => (
+                    <li key={idx} className="text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded p-1.5 flex items-start gap-1.5">
+                      <Bot size={12} className="text-indigo-400 mt-0.5 shrink-0" />
+                      {exp}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {claim.aiAnalysis.tamperingFlags && claim.aiAnalysis.tamperingFlags.length > 0 && (
+              <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-lg">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <ShieldAlert size={14} className="text-rose-600" />
+                  <span className="text-xs font-bold text-rose-700 uppercase tracking-wider">Tampering Detected</span>
+                </div>
+                <ul className="space-y-1">
+                  {claim.aiAnalysis.tamperingFlags.map((flag, idx) => (
+                    <li key={idx} className="text-xs font-semibold text-rose-800">• {flag}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {claim.aiAnalysis.fraudRingMatches && claim.aiAnalysis.fraudRingMatches.length > 0 && (
+              <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <AlertCircle size={14} className="text-orange-600" />
+                  <span className="text-xs font-bold text-orange-700 uppercase tracking-wider">Fraud Ring Risk</span>
+                </div>
+                <ul className="space-y-1">
+                  {claim.aiAnalysis.fraudRingMatches.map((match, idx) => (
+                    <li key={idx} className="text-xs font-semibold text-orange-800">• {match.reason}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <div className="flex items-center justify-between mt-2">
               <span className="text-sm font-semibold text-slate-500">Confidence Score</span>
               <div className="flex items-center gap-2">

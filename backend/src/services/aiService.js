@@ -166,6 +166,34 @@ exports.processClaimDocuments = async (claimId, filePaths = []) => {
     let mlConfidence = 0.92;
     let mlRiskScore = 15.0;
     let recommendedAction = 'Adjuster Review Required';
+    let explanations = [];
+    let tamperingFlags = [];
+
+    // Parse EXIF for tampering
+    try {
+      const ExifParser = require('exif-parser');
+      for (const filePath of targetFiles) {
+        if (filePath.toLowerCase().match(/\.(jpg|jpeg|png)$/)) {
+          const buffer = fs.readFileSync(filePath);
+          const parser = ExifParser.create(buffer);
+          try {
+            const result = parser.parse();
+            if (result.tags && result.tags.Software && result.tags.Software.toLowerCase().includes('photoshop')) {
+              tamperingFlags.push(`Image modified by Photoshop: ${path.basename(filePath)}`);
+            }
+            if (result.tags && result.tags.ModifyDate && result.tags.DateTimeOriginal) {
+              if (result.tags.ModifyDate !== result.tags.DateTimeOriginal) {
+                tamperingFlags.push(`Image dates do not match (possible tampering): ${path.basename(filePath)}`);
+              }
+            }
+          } catch (exifErr) {
+            // Not all images have EXIF
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('EXIF parsing skipped', e.message);
+    }
 
     try {
       const mlResponse = await axios.post(
@@ -184,6 +212,7 @@ exports.processClaimDocuments = async (claimId, filePaths = []) => {
         mlDecision = mlResponse.data.decision;
         mlConfidence = mlResponse.data.confidence;
         mlRiskScore = mlResponse.data.risk_score;
+        explanations = mlResponse.data.explanations || [];
         recommendedAction = mlDecision === 'APPROVE' ? 'Approve Settlement' : (mlDecision === 'REJECT' ? 'Refer to SIU / Reject' : 'Manual Review Required');
       }
     } catch (mlErr) {
@@ -191,6 +220,17 @@ exports.processClaimDocuments = async (claimId, filePaths = []) => {
       // Graceful fallback when ML server is down
       mlDecision = 'ESCALATE';
       recommendedAction = 'MANUAL_REVIEW_REQUIRED';
+    }
+
+    // Fraud Ring Check (Check if IP or Claimant has unusually high number of claims recently)
+    const fraudRingMatches = [];
+    if (priorClaimsCount > 3) {
+      fraudRingMatches.push({ claimId: claimId.toString(), reason: `Claimant has ${priorClaimsCount} prior claims.` });
+    }
+
+    if (tamperingFlags.length > 0) {
+      mlDecision = 'REJECT';
+      recommendedAction = 'Refer to SIU (Fraud ring / Tampering detected)';
     }
 
     // Update claim with AI results & extracted entities for UI display
@@ -201,8 +241,11 @@ exports.processClaimDocuments = async (claimId, filePaths = []) => {
     claim.aiAnalysis = {
       summary: `AI Pipeline processed ${validDocCount} documents. Triage: ${mlDecision} (Confidence: ${(mlConfidence * 100).toFixed(0)}%, Risk Score: ${mlRiskScore}).`,
       consistencyScore: Math.round(consistencyScore * 100),
-      detectedIssues: mlDecision === 'REJECT' ? ['High risk anomaly detected in claim pattern'] : [],
+      detectedIssues: (mlDecision === 'REJECT' ? ['High risk anomaly detected in claim pattern'] : []).concat(tamperingFlags),
       recommendedAction: recommendedAction,
+      explanations: explanations,
+      tamperingFlags: tamperingFlags,
+      fraudRingMatches: fraudRingMatches,
       processedAt: new Date()
     };
 

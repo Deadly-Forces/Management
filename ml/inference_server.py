@@ -79,7 +79,7 @@ class PredictionResponse(BaseModel):
     confidence: float
     risk_score: float
     probabilities: Dict[str, float]
-    latency_ms: float
+    explanations: list
 
 @app.get("/health")
 def health_check():
@@ -90,11 +90,15 @@ def health_check():
         "timestamp": time.time()
     }
 
+# Create explainer globally to speed up inference
+explainer = None
+
 @app.post("/predict", response_model=PredictionResponse)
 def predict_claim_risk(
     features: ClaimFeatures,
     key: str = Security(verify_api_key)
 ):
+    global explainer
     if model is None or feature_columns is None:
         raise HTTPException(status_code=503, detail="Model/Features not loaded")
     
@@ -126,6 +130,41 @@ def predict_claim_risk(
     escalate_prob = prob_dict.get("ESCALATE", 0.0)
     risk_score = round((reject_prob * 100.0) + (escalate_prob * 50.0), 2)
 
+    # Explainable AI (SHAP)
+    explanations = []
+    try:
+        import shap
+        if explainer is None:
+            explainer = shap.TreeExplainer(model)
+        
+        shap_values = explainer.shap_values(input_df)
+        
+        # Determine the index of the predicted class to explain it
+        class_idx = list(classes).index(decision)
+        
+        # Some sklearn models return list of arrays, some return 3D array
+        if isinstance(shap_values, list):
+            vals = shap_values[class_idx][0]
+        elif len(shap_values.shape) == 3:
+            vals = shap_values[0, :, class_idx]
+        else:
+            vals = shap_values[0]
+
+        # Pair features with their SHAP values and sort by absolute impact
+        feature_impact = []
+        for i, col in enumerate(feature_columns):
+            feature_impact.append({'feature': col, 'impact': float(vals[i]), 'value': df_features[col]})
+            
+        feature_impact.sort(key=lambda x: abs(x['impact']), reverse=True)
+        
+        # Get top 3 factors driving the decision
+        for item in feature_impact[:3]:
+            direction = "increased" if item['impact'] > 0 else "decreased"
+            explanations.append(f"{item['feature']} ({item['value']}) {direction} risk score")
+            
+    except Exception as e:
+        explanations.append(f"SHAP explanation failed: {str(e)}")
+
     latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
 
     return PredictionResponse(
@@ -133,7 +172,8 @@ def predict_claim_risk(
         confidence=confidence,
         risk_score=risk_score,
         probabilities=prob_dict,
-        latency_ms=latency_ms
+        latency_ms=latency_ms,
+        explanations=explanations
     )
 
 if __name__ == "__main__":
