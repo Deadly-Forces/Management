@@ -1,185 +1,173 @@
-# ClaimPilot - AI-Powered Automated Insurance Claims Adjudication System
+# ClaimPilot: Enterprise-Grade Automated Claims Adjudication Platform
 
-An intelligent, full-stack insurance claims adjudication platform featuring real-time OCR document extraction, NLP entity parsing, machine learning risk classification (APPROVE / REJECT / ESCALATE), human-in-the-loop review cockpits, and strict multi-tenant claimant isolation.
+ClaimPilot is an AI-powered, full-stack microservices architecture designed to automate and triage insurance claims adjudication. Built for scale, security, and real-time processing, the platform integrates robust document extraction (OCR), NLP-driven entity parsing, and a high-performance machine learning risk classification pipeline (APPROVE / REJECT / ESCALATE). 
+
+It features strict multi-tenant data isolation, role-based access control (RBAC), and human-in-the-loop review cockpits for claims adjusters.
 
 ---
 
-## 🛠️ System Architecture & Components
+## 🏛️ System Architecture
 
+ClaimPilot implements a decoupled microservices architecture prioritizing horizontal scalability, fault tolerance, and security boundaries.
+
+```mermaid
+flowchart TD
+    subgraph Frontend [Presentation Layer - React 18 + Vite]
+        A1(Applicant Portal)
+        A2(Adjuster Cockpit)
+        A3(Operations Dashboard)
+    end
+
+    subgraph Backend [Core API Services - Node.js/Express]
+        B1(State Machine Engine)
+        B2(Auth/RBAC Gateway)
+        B3(Ingestion & Validation)
+        B4(OCR & NLP Service)
+    end
+
+    subgraph ML [AI Inference Engine - FastAPI]
+        M1(Feature Engineering)
+        M2(Risk Classifier Model)
+    end
+
+    subgraph DB [Data Persistence]
+        D1[(MongoDB Atlas)]
+    end
+
+    Frontend -- REST (JWT Bearer) --> Backend
+    Backend -- HTTP POST (X-Internal-Key) --> ML
+    Backend -- Mongoose ORM --> DB
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                       React 18 + Vite Frontend                  │
-│   • Applicant Portal (Claimant)       • Review Cockpit (Adjuster)│
-│   • Operations Dashboard (Admin)      • Real-time Entity Cards   │
-└─────────────────────────────────┬───────────────────────────────┘
-                                  │ REST API (Bearer JWT)
-                                  ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Node.js + Express Backend                    │
-│   • Helmet & Rate-Limiter (100/15m)   • Multer (10MB, MIME Check)│
-│   • Isolated Claimant Filtering       • Role-Based State Machine│
-├─────────────────────────────────┬───────────────────────────────┤
-│    ocrService.js (Tesseract.js) │   extractionService.js (Regex)│
-└─────────────────────────────────┬───────────────────────────────┘
-                                  │ HTTP POST /predict (X-Internal-Key)
-                                  ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                  FastAPI ML Microservice (Port 8001)            │
-│   • Random Forest Classifier (risk_model.pkl, F1: 99.8%)        │
-│   • Internal Binding (127.0.0.1 only) • Sub-25ms Latency SLA    │
-└─────────────────────────────────────────────────────────────────┘
-```
+
+### Core Components
+* **Frontend**: React 18, Vite, Tailwind CSS. Role-based routing (Admin, Adjuster, Claimant) with real-time entity cards and polling.
+* **Backend API**: Node.js, Express. Features hardened security (Helmet, rate-limiting), Multer-based MIME-validated uploads (10MB ceiling), and a robust localized OCR pipeline (Tesseract.js + Sharp).
+* **AI Inference Service**: FastAPI-based Python microservice running on an internal network bind (`127.0.0.1:8001`). Exposes a hyperparameter-optimized Random Forest risk classification model trained on a 20-feature engineered schema.
+* **Database**: MongoDB (Mongoose ORM) with strict tenant and claimant data isolation at the query level.
 
 ---
 
-## 📋 Prerequisites
+## 🛠️ Environment Prerequisites
 
-Before running the application locally, ensure you have the following installed:
-* **Node.js**: v18.0.0+ (Tested on v24.x)
-* **npm**: v9.0.0+
-* **Python**: v3.10+ (Tested on Python 3.11 / 3.14)
-* **MongoDB**: A running MongoDB instance (Local on `mongodb://localhost:27017` or MongoDB Atlas URI)
+To run this stack locally, ensure the following tools are provisioned:
+* **Node.js**: `v18.0.0+` (Tested on LTS v24.x)
+* **npm**: `v9.0.0+`
+* **Python**: `v3.10+` (Tested on `v3.11`/`v3.14`)
+* **MongoDB**: Active local instance (`localhost:27017`) or Atlas URI.
 
 ---
 
-## 🚀 Running Locally
+## 🚀 Local Development Guide
 
-Follow these exact steps to launch the ClaimPilot system locally.
+Follow these sequential steps to boot the entire platform from source.
 
-### Step 1: Clone & Configure Environment Variables
-Copy `.env.example` in both root and `backend/`:
+### 1. Environment Configuration
+Initialize the `.env` configuration from the provided templates:
 ```bash
 cp .env.example .env
 cp backend/.env.example backend/.env
 ```
 
-Ensure `backend/.env` contains:
+Ensure `backend/.env` is configured correctly for your local MongoDB instance and defines the internal microservice secrets:
 ```env
 PORT=5000
 MONGO_URI=mongodb://localhost:27017/claimpilot
 JWT_SECRET=claimpilot_supersecret_jwt_key_2026_production_min32chars
 ML_SERVICE_URL=http://127.0.0.1:8001
 ML_INTERNAL_KEY=claimpilot-internal-secret-2026
-DEMO_ADMIN_EMAIL=admin@acme.com
-DEMO_ADMIN_PASSWORD=password123
-DEMO_VERIFIER_EMAIL=verifier@acme.com
-DEMO_VERIFIER_PASSWORD=password123
 ```
 
----
+### 2. Bootstrapping the AI Inference Service
+The ML pipeline requires a dedicated Python virtual environment.
 
-### Step 2: Set Up and Start Python ML Microservice
 Open Terminal 1:
 ```bash
-# Navigate to ml directory
+# Navigate to the ML subsystem
 cd ml
 
-# Create and activate Python virtual environment
+# Provision the virtual environment
 python -m venv venv
-# On Windows (PowerShell):
-.\venv\Scripts\Activate.ps1
-# On Linux/macOS:
-# source venv/bin/activate
 
-# Install dependencies
+# Activate (Windows PowerShell):
+.\venv\Scripts\Activate.ps1
+# Activate (Unix): source venv/bin/activate
+
+# Install required numerical computing and ML libraries
 pip install -r requirements.txt
 
-# Generate synthetic claims dataset (2500 samples, calibrated distribution)
-python generate_synthetic_data.py
-# Expected Output:
-# Generated 2500 synthetic claim records.
-# APPROVE: 60.0%, REJECT: 25.0%, ESCALATE: 15.0%
+# Run the end-to-end data pipeline:
+# 1. Preprocess raw data (generates processed_claims.csv)
+# 2. Train and serialize the Random Forest model
+# 3. Perform hyperparameter tuning and model QA audit
+python preprocess.py
+python train.py
+python audit.py
 
-# Train the Random Forest risk scoring model
-python train_risk_model.py
-# Expected Output:
-# Weighted F1 Score: 0.9980 (Target: > 0.80)
-# Trained risk model successfully saved to ml/models/risk_model.pkl
-
-# Start the secure FastAPI inference server
+# Boot the FastAPI inference server on the internal loopback
 python inference_server.py
 ```
-**Expected Output:**
-```
-INFO:     Started server process [PID]
-INFO:     Waiting for application startup.
-Loaded Risk Model from ml/models/risk_model.pkl successfully.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://127.0.0.1:8001 (Press CTRL+C to quit)
-```
+*Wait for the server to report: `Uvicorn running on http://127.0.0.1:8001`*
 
----
-
-### Step 3: Set Up and Start Backend Server
+### 3. Bootstrapping the Core API
 Open Terminal 2:
 ```bash
 cd backend
 npm install
 npm run dev
 ```
-**Expected Output:**
-```
-MongoDB Connected: ...
-[Seed] Seeded Admin (admin@acme.com) and Verifier (verifier@acme.com)
-Server running on port 5000
-```
+*The backend will automatically seed required admin/verifier accounts on startup.*
 
----
-
-### Step 4: Set Up and Start Frontend Client
+### 4. Bootstrapping the Frontend Client
 Open Terminal 3:
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-**Expected Output:**
-```
-VITE v8.2.2  ready in 250 ms
-
-  ➜  Local:   http://localhost:5173/
-  ➜  Network: use --host to expose
-```
-
-Open `http://localhost:5173` in your browser.
+Navigate to `http://localhost:5173` in your browser.
 
 ---
 
-## 🐳 Running with Docker Compose
+## 🐳 Containerized Deployment (Docker)
 
-To launch all four microservices (Frontend, Backend, ML, MongoDB) in an isolated container network with built-in health checks:
+For a production-ready, isolated container network featuring built-in health checks and orchestrated startup sequences:
 
 ```bash
 docker-compose up --build
 ```
-* **Frontend UI**: `http://localhost:80`
+
+**Exposed Services:**
+* **Frontend UI**: `http://localhost:80` (Proxied via Nginx)
 * **Backend API**: `http://localhost:5000`
-* **ML Inference**: `http://127.0.0.1:8001` (Internal binding)
+* **ML Inference**: `http://127.0.0.1:8001` (Internal binding only)
 * **MongoDB**: `localhost:27017`
 
 ---
 
-## 🧪 Running Automated Tests
+## 🧪 Integration & Resilience Testing
 
-To execute the Jest + Supertest end-to-end integration and resilience test suite:
+The platform includes a comprehensive, automated testing suite (Jest + Supertest) designed to validate end-to-end business logic and failure recovery.
+
 ```bash
 cd backend
 npm test
 ```
-The test suite validates:
-1. `POST /api/demo/login` -> 200 OK + JWT token generation.
-2. `POST /api/demo/claims/submit` with OCR & ML inference -> status transitions out of `DOCUMENTS_PROCESSING` within SLA.
-3. Corrupted PDF upload -> asserts 400 Bad Request (no 500 crash).
-4. Blank description submission -> asserts 400 Bad Request.
-5. Claimant isolation -> asserts Claimants cannot inspect each other's claims.
-6. ML server downtime resilience -> asserts graceful fallback with `MANUAL_REVIEW_REQUIRED`.
+
+**Test Coverage Highlights:**
+1. **Authentication:** Validates JWT generation and RBAC authorization headers.
+2. **End-to-End Adjudication:** Simulates a complete claim submission, triggering real OCR extraction and ML inference, asserting SLA transitions out of the `DOCUMENTS_PROCESSING` state.
+3. **Graceful Degradation:** Simulates a catastrophic ML microservice failure (downtime/timeout) and asserts the backend successfully catches the error and degrades gracefully to a `MANUAL_REVIEW_REQUIRED` state.
+4. **Data Isolation:** Enforces strict claimant boundaries, ensuring users cannot access or leak cross-tenant claims.
+5. **Input Validation:** Simulates adversarial inputs (corrupted PDFs, missing required payloads) to assert robust HTTP 400 responses without crashing the Node.js event loop.
 
 ---
 
-## 🔒 Security & Privacy Implementations
+## 🛡️ Security Posture & Compliance
 
-1. **Strict Multi-Tenant & Claimant Isolation**: Claims are queried using `{ claimantId: req.user._id, tenantId: req.tenantId }`. Zero reliance on hardcoded admin accounts.
-2. **Hardened Upload Pipeline**: Multer validates file magic numbers and MIME types (`application/pdf`, `image/jpeg`, `image/png`, `image/webp`). Enforces a strict 10MB ceiling.
-3. **Internal Microservice Protection**: The ML inference service binds strictly to `127.0.0.1` and requires an `X-Internal-Key` header on every call.
-4. **Data Sovereignty & Privacy**: Uses local `Tesseract.js` + `Sharp` preprocessing, avoiding external cloud data egress for sensitive identity cards (Aadhaar, Death Certificates).
-5. **Sanitized Git History**: All sensitive test identity images and credentials have been permanently purged from git commit history via `git-filter-repo`.
+ClaimPilot is engineered with strict security-by-default principles:
+
+1. **Multi-Tenant Data Sovereignty**: Document queries enforce strict `{ claimantId: req.user.id }` filtering to prevent horizontal privilege escalation.
+2. **Local Data Processing**: By utilizing Tesseract.js and locally hosted ML models, sensitive PII/PHI (Aadhaar cards, Medical Certificates) is processed entirely within the local cluster boundaries. Zero data is egressed to third-party cloud APIs (e.g., AWS Textract / Google Vision API).
+3. **Hardened Ingestion Pipeline**: File uploads are protected against malicious payloads via strict MIME-type and magic-number validation (via `Multer`), enforcing a hard 10MB ceiling to mitigate DDOS vectors.
+4. **Microservice Network Security**: The ML inference service binds strictly to the `127.0.0.1` loopback interface and mandates a secure `X-Internal-Key` header, preventing external network access to the prediction API.
+5. **Sanitized Version Control**: The repository leverages `git-filter-repo` to guarantee that all sensitive test images and historical credentials have been permanently scrubbed from the git tree.

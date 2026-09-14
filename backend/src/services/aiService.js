@@ -143,8 +143,17 @@ exports.processClaimDocuments = async (claimId, filePaths = []) => {
       doc_confidence_score: Number(Math.min(1.0, Math.max(0.1, avgConfidence)).toFixed(2)),
       consistency_score: Number(Math.min(1.0, Math.max(0.1, consistencyScore)).toFixed(2)),
       days_since_incident: 5,
-      has_police_report: hasPoliceReport,
-      has_medical_cert: hasMedicalCert,
+      has_police_report: hasPoliceReport ? 1 : 0,
+      has_medical_certificate: hasMedicalCert ? 1 : 0,
+      has_death_certificate: claim.claimType === 'LIFE_DEATH' ? 1 : 0,
+      has_repair_estimate: claim.claimType === 'AUTO_REPAIR' ? 1 : 0,
+      document_count: (hasPoliceReport ? 1 : 0) + (hasMedicalCert ? 1 : 0) + (claim.claimType === 'LIFE_DEATH' ? 1 : 0) + (claim.claimType === 'AUTO_REPAIR' ? 1 : 0),
+      policy_number_extracted: extractedPolicy ? 1 : 0,
+      amount_vs_policy_limit_ratio: finalAmount / 100000.0, // Assuming 100k average policy
+      incident_on_weekend: 0,
+      submission_within_7_days: 1,
+      name_mismatch: 0,
+      date_mismatch: 0,
       prior_claims_count: priorClaimsCount
     };
 
