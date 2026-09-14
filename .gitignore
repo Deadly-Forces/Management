@@ -3,12 +3,6 @@ node_modules/
 */node_modules/
 package-lock.json.bak
 
-# Production build
-dist/
-dist-ssr/
-build/
-*.local
-
 # Environment variables
 .env
 .env.*
@@ -28,18 +22,6 @@ logs/
 npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
-
-# Uploads (ignore uploaded media except demo sample assets)
-backend/uploads/*
-!backend/uploads/car_damage_photo.jpg
-!backend/uploads/death_certificate_1.pdf
-!backend/uploads/fire_report_property.pdf
-!backend/uploads/id_proof_aadhaar.jpg
-!backend/uploads/medical_report.pdf
-!backend/uploads/police_fir_auto.pdf
-!backend/uploads/policy_document_1.pdf
-!backend/uploads/repair_estimate.pdf
-!backend/uploads/.gitkeep
 
 # IDE / OS files
 .vscode/*
