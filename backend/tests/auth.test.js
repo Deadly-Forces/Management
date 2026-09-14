@@ -19,6 +19,7 @@ beforeAll(async () => {
   tenant1 = await Tenant.create({ name: "Acme Insurance" });
 
   const admin = await User.create({
+    name: "Admin",
     email: "admin@acme.com",
     password: "password123",
     role: "Administrator",
@@ -26,6 +27,7 @@ beforeAll(async () => {
   });
 
   const claimant = await User.create({
+    name: "John Claimant",
     email: "john@claimant.com",
     password: "password123",
     role: "Claimant",

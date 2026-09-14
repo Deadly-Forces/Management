@@ -19,9 +19,9 @@ beforeAll(async () => {
 
   tenant1 = await Tenant.create({ name: "Acme Insurance Phase 2" });
 
-  const admin = await User.create({ email: "admin@p2.com", password: "pwd", role: "Administrator", tenantId: tenant1._id });
-  verifierUser = await User.create({ email: "verifier@p2.com", password: "pwd", role: "Human_Verifier", tenantId: tenant1._id });
-  const claimant = await User.create({ email: "claimant@p2.com", password: "pwd", role: "Claimant", tenantId: tenant1._id });
+  const admin = await User.create({ name: "Admin", email: "admin@p2.com", password: "pwd", role: "Administrator", tenantId: tenant1._id });
+  verifierUser = await User.create({ name: "Verifier", email: "verifier@p2.com", password: "pwd", role: "Human_Verifier", tenantId: tenant1._id });
+  const claimant = await User.create({ name: "Claimant", email: "claimant@p2.com", password: "pwd", role: "Claimant", tenantId: tenant1._id });
 
   adminToken = (await request(app).post("/api/auth/login").send({ email: "admin@p2.com", password: "pwd" })).body.token;
   verifierToken = (await request(app).post("/api/auth/login").send({ email: "verifier@p2.com", password: "pwd" })).body.token;

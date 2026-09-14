@@ -148,7 +148,10 @@ exports.processClaimDocuments = async (claimId, filePaths = []) => {
       prior_claims_count: priorClaimsCount
     };
 
-    console.log(`[aiService] Calling ML inference service at ${ML_SERVICE_URL}/predict with features:`, featureVector);
+    const mlServiceUrl = process.env.ML_SERVICE_URL || 'http://127.0.0.1:8001';
+    const mlInternalKey = process.env.ML_INTERNAL_KEY || 'claimpilot-internal-secret-2026';
+
+    console.log(`[aiService] Calling ML inference service at ${mlServiceUrl}/predict with features:`, featureVector);
 
     let mlDecision = 'APPROVE';
     let mlConfidence = 0.92;
@@ -157,12 +160,12 @@ exports.processClaimDocuments = async (claimId, filePaths = []) => {
 
     try {
       const mlResponse = await axios.post(
-        `${ML_SERVICE_URL}/predict`,
+        `${mlServiceUrl}/predict`,
         featureVector,
         {
           headers: {
             'Content-Type': 'application/json',
-            'X-Internal-Key': ML_INTERNAL_KEY
+            'X-Internal-Key': mlInternalKey
           },
           timeout: 5000 // 5s timeout SLA
         }
