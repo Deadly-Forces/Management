@@ -1,28 +1,41 @@
-# Environment files
-*.env
-.env
-backend/.env
-.env.local
-.env.*.local
-
-# ML models and virtual environments
-ml/models/*.pkl
-ml/venv/
-*.pyc
+# Dependencies
+node_modules/
 __pycache__/
+*.pyc
+.pycache/
 
-# Root-level sensitive test images and document uploads
+# Environment
+.env
+.env.local
+.env.production
+
+# ML Models and Data
+ml/models/*.pkl
+ml/training/*.csv
+ml/dataset/*.csv
+
+# Sensitive Documents
 *.webp
 *.png
-uploads/
-backend/uploads/
-*.traineddata
+*.jpg
+*.jpeg
+!frontend/src/assets/*.png
 
-# Build artifacts and dependencies
-dist/
+# Build outputs
 frontend/dist/
-node_modules/
-backend/node_modules/
-frontend/node_modules/
+backend/dist/
+
+# OS Files
 .DS_Store
 Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Agent artifacts
+.agents/
